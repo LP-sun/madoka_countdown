@@ -146,7 +146,7 @@
             const title = params.get("title") || "《魔法少女小圆：魔女之夜的回天》上映";
             const dateStr = params.get("date") || "2026-02-01";
             const audioParam = params.get("audio") || "audio/andimhome.mp3";        // e.g. "audio/demo.mp3" 或完整 URL
-            const autoplay = params.get("autoplay") === "1";
+            const autoplay = params.get("autoplay") === "1" || true; // 默认自动播放
 
             const eventTitleEl = document.getElementById("event-title");
             const dateLineEl = document.getElementById("date-line");
