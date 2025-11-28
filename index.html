@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>NFC 倒计时</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+            color-scheme: dark light;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #fce4ec, #ede7f6, #e3f2fd);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+            padding: 24px 22px 20px;
+            max-width: 420px;
+            width: calc(100% - 32px);
+            text-align: center;
+            backdrop-filter: blur(12px);
+        }
+
+        h1 {
+            font-size: 1.35rem;
+            margin: 0 0 12px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .date-line {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        .countdown {
+            margin: 10px 0 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .days-number {
+            font-size: 3.2rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: #3f51b5;
+        }
+
+        .days-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .detail-text {
+            font-size: 0.9rem;
+            color: #444;
+            margin: 6px 0 10px;
+            min-height: 1.2em;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            background: linear-gradient(135deg, #3f51b5, #673ab7);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(63, 81, 181, 0.25);
+            transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.1s ease;
+        }
+
+        .btn:active {
+            transform: translateY(1px) scale(0.99);
+            box-shadow: 0 4px 12px rgba(63, 81, 181, 0.25);
+            filter: brightness(0.96);
+        }
+
+        .btn[disabled] {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .hint {
+            margin: 6px 0 0;
+            font-size: 0.78rem;
+            color: #777;
+            min-height: 1.1em;
+        }
+
+        .small {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="card">
+        <h1 id="event-title">距离某个日子还有</h1>
+        <div class="date-line" id="date-line"></div>
+
+        <section class="countdown">
+            <div class="days-number" id="days">0</div>
+            <div class="days-label">天</div>
+        </section>
+
+        <p class="detail-text" id="detail-text"></p>
+
+        <button class="btn" id="play-btn">
+            <span id="play-icon">▶</span>
+            <span id="play-text">播放倒计时音频</span>
+        </button>
+        <p class="hint" id="hint-text"></p>
+
+        <p class="small">提示：如果浏览器禁止自动播放，请点击按钮手动播放。</p>
+
+        <audio id="audio" preload="auto"></audio>
+    </main>
+
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+
+            // 支持通过 URL 参数定制
+            // ?title=考试周&date=2026-01-10&audio=audio/exam.mp3&autoplay=1
+            const title = params.get("title") || "特别的那一天";
+            const dateStr = params.get("date") || "2026-01-01";
+            const audioParam = params.get("audio");        // e.g. "audio/demo.mp3" 或完整 URL
+            const autoplay = params.get("autoplay") === "1";
+
+            const eventTitleEl = document.getElementById("event-title");
+            const dateLineEl = document.getElementById("date-line");
+            const daysEl = document.getElementById("days");
+            const detailEl = document.getElementById("detail-text");
+            const hintEl = document.getElementById("hint-text");
+            const audioEl = document.getElementById("audio");
+            const playBtn = document.getElementById("play-btn");
+            const playIcon = document.getElementById("play-icon");
+            const playText = document.getElementById("play-text");
+
+            eventTitleEl.textContent = `距离「${title}」还有`;
+
+            const target = new Date(dateStr);
+            if (isNaN(target.getTime())) {
+                dateLineEl.textContent = "";
+                detailEl.textContent = "目标日期格式有误，请检查 URL 中的 date 参数（推荐 YYYY-MM-DD）。";
+                playBtn.disabled = true;
+                return;
+            }
+
+            // 显示目标日期（用设备本地时区）
+            dateLineEl.textContent = `目标日期：${target.getFullYear()}-${String(
+                target.getMonth() + 1
+            ).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+
+            // 配置音频
+            if (audioParam) {
+                if (/^https?:\/\//i.test(audioParam)) {
+                    audioEl.src = audioParam; // 完整 URL
+                } else {
+                    audioEl.src = audioParam; // 相对路径，例如 "audio/demo.mp3"
+                }
+            } else {
+                // 没有音频参数就隐藏按钮
+                playBtn.style.display = "none";
+            }
+
+            function updateCountdown() {
+                const now = new Date();
+                let diff = target.getTime() - now.getTime();
+
+                if (diff <= 0) {
+                    daysEl.textContent = "0";
+                    detailEl.textContent = `「${title}」已经到啦！`;
+                    return;
+                }
+
+                const totalSeconds = Math.floor(diff / 1000);
+                const days = Math.floor(totalSeconds / (24 * 60 * 60));
+                const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+
+                daysEl.textContent = String(days);
+                detailEl.textContent = `还剩 ${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+
+            function setPlayingUI(playing) {
+                if (playing) {
+                    playIcon.textContent = "⏸";
+                    playText.textContent = "暂停音频";
+                } else {
+                    playIcon.textContent = "▶";
+                    playText.textContent = "播放倒计时音频";
+                }
+            }
+
+            function tryPlay() {
+                if (!audioEl.src) return;
+                audioEl
+                    .play()
+                    .then(() => {
+                        hintEl.textContent = "正在播放倒计时音频";
+                        setPlayingUI(true);
+                    })
+                    .catch(() => {
+                        // 浏览器禁止自动播放
+                        hintEl.textContent = "浏览器阻止了自动播放，请点击按钮开始播放。";
+                        setPlayingUI(false);
+                    });
+            }
+
+            playBtn.addEventListener("click", () => {
+                if (!audioEl.src) return;
+                if (audioEl.paused) {
+                    tryPlay();
+                } else {
+                    audioEl.pause();
+                    setPlayingUI(false);
+                    hintEl.textContent = "";
+                }
+            });
+
+            if (autoplay && audioParam) {
+                // 稍微延迟一下，给页面一点加载时间
+                setTimeout(tryPlay, 600);
+            }
+        })();
+    </script>
+</body>
+
+</html>
