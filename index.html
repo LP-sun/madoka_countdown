@@ -45,9 +45,16 @@
             margin: 0 auto;
             display: grid;
             gap: 14px;
-            min-height: 100%;
-            align-content: start;
+
+            /* 让布局以“屏幕高度”为基准 */
+            min-height: 100vh;
+            min-height: 100dvh;
+            /* 更适配移动端动态地址栏 */
+
+            /* 三段式：头部 / 中间区域 / 底部 */
+            grid-template-rows: auto 1fr auto;
         }
+
 
         header {
             padding: 8px 4px 0;
@@ -67,12 +74,20 @@
         }
 
         .video-card {
+            /* 你原来的样式保留 */
             background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), transparent 55%), var(--panel);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: var(--radius);
             overflow: hidden;
             box-shadow: var(--shadow);
+
+            /* 新增：在中间那一行里垂直居中 */
+            align-self: center;
+
+            /* 可选：如果你想它也更“视觉居中” */
+            justify-self: stretch;
         }
+
 
         /* 竖屏主视觉 9:16 */
         .video-wrap {
@@ -211,8 +226,7 @@
 
         <section class="video-card">
             <div class="video-wrap">
-                <video id="player" src="video/baka2.mp4" poster="poster.jpg" playsinline preload="metadata" loop
-                    controls>
+                <video id="player" src="video/09.mp4" poster="poster.jpg" playsinline preload="metadata" loop controls>
                     你的浏览器不支持 video 标签。
                 </video>
             </div>
@@ -249,11 +263,17 @@
         const gate = document.getElementById("gate");
         const gateBtn = document.getElementById("gateBtn");
 
+
+        function pickRandom(arr) {
+            if (!arr || arr.length === 0) return null;
+            const i = Math.floor(Math.random() * arr.length);
+            return arr[i];
+        }
+
         let autoplayAttempted = false;
 
         function showGate() {
             gate.classList.add("show");
-            // 防止背景滚动
             document.documentElement.style.overflow = "hidden";
             document.body.style.overflow = "hidden";
         }
@@ -264,22 +284,37 @@
             document.body.style.overflow = "";
         }
 
+        // 2) 初始化时随机挑一个视频
+        async function initRandomVideo() {
+            try {
+                const res = await fetch("video/manifest.json", { cache: "no-store" });
+                const list = await res.json();
+
+                const chosen = pickRandom(list);
+                if (!chosen) return;
+
+                player.src = "video/" + chosen;
+                player.load();
+            } catch (e) {
+                console.warn("无法读取 manifest.json，回退到默认 src。", e);
+            }
+        }
+
+
         async function tryAutoplayWithSound() {
             if (autoplayAttempted) return;
             autoplayAttempted = true;
 
             try {
-                // 关键：尝试有声自动播放
                 player.muted = false;
                 player.autoplay = true;
 
                 const p = player.play();
                 if (p && typeof p.then === "function") {
-                    await p; // 成功则直接播放
+                    await p;
                 }
                 hideGate();
             } catch (err) {
-                // 有声自动播放失败 → 等待用户手势
                 player.pause();
                 showGate();
             }
@@ -287,7 +322,6 @@
 
         async function playAfterUserGesture() {
             try {
-                // 用户点击后优先有声播放
                 player.muted = false;
                 const p = player.play();
                 if (p && typeof p.then === "function") {
@@ -295,7 +329,6 @@
                 }
                 hideGate();
             } catch (err) {
-                // 极端兜底：若仍失败，改成静音播放以确保能启动
                 try {
                     player.muted = true;
                     const p2 = player.play();
@@ -304,34 +337,37 @@
                     }
                     hideGate();
                 } catch (e2) {
-                    // 仍失败就保持 controls 让用户自行处理
+                    // 失败就留给原生 controls
                 }
             }
         }
 
-        // 点击覆盖层按钮开始播放
         gateBtn.addEventListener("click", playAfterUserGesture);
 
-        // 也允许点击半透明区域任意位置触发（更符合手机习惯）
         gate.addEventListener("click", (e) => {
             if (e.target === gate) playAfterUserGesture();
         });
 
-        // 页面加载后尝试
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", tryAutoplayWithSound);
-        } else {
+        async function boot() {
+            initRandomVideo();
+            autoplayAttempted = false;
             tryAutoplayWithSound();
         }
 
-        // 从后台切回前台再尝试一次（不重复打扰：只在未成功播放过且 gate 未显示时）
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", boot);
+        } else {
+            boot();
+        }
+
         document.addEventListener("visibilitychange", () => {
             if (!document.hidden && !gate.classList.contains("show") && player.paused) {
-                autoplayAttempted = false; // 允许重试一次
+                autoplayAttempted = false;
                 tryAutoplayWithSound();
             }
         });
     </script>
+
 </body>
 
 </html>
