@@ -94,6 +94,14 @@
             position: relative;
             aspect-ratio: 16 / 9;
             background: #05060a;
+
+        }
+
+        .video-wrap iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;
         }
 
         video {
@@ -226,10 +234,12 @@
 
         <section class="video-card">
             <div class="video-wrap">
-                <video id="player" src="video/09.mp4" poster="poster.jpg" playsinline preload="metadata" loop controls>
-                    你的浏览器不支持 video 标签。
-                </video>
+                <iframe id="biliPlayer"
+                    src="//player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806012&p=1"
+                    scrolling="no" frameborder="0" allowfullscreen="true"
+                    allow="autoplay; fullscreen; picture-in-picture"></iframe>
             </div>
+
 
             <div class="meta">
                 <h2 class="meta-title">示例标题：你的作品/项目名称</h2>
