@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b0b0f" />
-    <title>B站随机视频展示</title>
+    <meta name="theme-color" content=" #0b0b0f" />
+    <title>红蓝一生推</title>
 
     <style>
         :root {
@@ -13,7 +13,7 @@
             --panel: #11131a;
             --text: #f5f7ff;
             --muted: #b8bccb;
-            --accent: #7aa2ff;
+            --accent: #47b6ff;
             --radius: 18px;
             --shadow: 0 10px 30px rgba(0, 0, 0, .35);
         }
@@ -96,6 +96,21 @@
             border: 0;
         }
 
+        .image-wrap {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            background: #05060a;
+        }
+
+        .image-wrap img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            /* 不想裁切就改成 contain */
+            background: #05060a;
+        }
+
         .meta {
             padding: 14px 14px 16px;
             display: grid;
@@ -139,9 +154,9 @@
 <body>
     <main class="app">
         <header>
-            <h1 class="title">B站随机视频展示页</h1>
+            <h1 class="title">红蓝一生推</h1>
             <p class="subtitle">
-                每次打开页面随机加载一个 B 站嵌入播放器。播放行为受平台与浏览器策略影响。
+                和我磕一辈子杏沙耶好吗
             </p>
         </header>
 
@@ -154,13 +169,10 @@
                 </iframe>
             </div>
 
-            <div class="meta">
-                <h2 class="meta-title">示例标题：你的作品/项目名称</h2>
-                <p class="desc">
-                    这里写简短说明（2-4 行最佳）：用途、亮点、实验条件或展示语。
-                    卡片会尽量在竖屏手机上保持视觉居中。
-                </p>
+            <div class="image-wrap">
+                <img src="image/background.jpg" alt="cover image">
             </div>
+
         </section>
 
         <footer>
@@ -174,7 +186,8 @@
         // 在这里添加你想随机的 B 站播放器链接（务必使用 https）
         const BILI_POOL = [
             "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806012&p=1",
-            "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806252&p=2"
+            "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806252&p=2",
+            "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34530656416&p=3"
             // 示例：再加几个你自己的
             // "https://player.bilibili.com/player.html?isOutside=true&bvid=BVxxxxxxx&cid=xxxxxxxx&p=1",
             // "https://player.bilibili.com/player.html?isOutside=true&bvid=BVyyyyyyy&cid=yyyyyyyy&p=1",
