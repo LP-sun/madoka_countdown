@@ -1,254 +1,336 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 
 <head>
-    <meta charset="UTF-8" />
-    <title>NFC 倒计时</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0f" />
+    <title>Smart Autoplay Video</title>
+
     <style>
         :root {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-            color-scheme: dark light;
+            --bg: #0b0b0f;
+            --panel: #11131a;
+            --text: #f5f7ff;
+            --muted: #b8bccb;
+            --accent: #7aa2ff;
+            --radius: 18px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
         }
 
         body {
             margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(circle at top, #fce4ec, #ede7f6, #e3f2fd);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(900px 900px at 10% -10%, rgba(122, 162, 255, 0.18), transparent 60%),
+                radial-gradient(900px 900px at 90% 20%, rgba(120, 255, 214, 0.10), transparent 60%),
+                var(--bg);
+            -webkit-font-smoothing: antialiased;
+            padding:
+                max(14px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
         }
 
-        .card {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
-            padding: 24px 22px 20px;
-            max-width: 420px;
-            width: calc(100% - 32px);
-            text-align: center;
-            backdrop-filter: blur(12px);
+        .app {
+            max-width: 520px;
+            margin: 0 auto;
+            display: grid;
+            gap: 14px;
+            min-height: 100%;
+            align-content: start;
         }
 
-        h1 {
+        header {
+            padding: 8px 4px 0;
+        }
+
+        .title {
             font-size: 1.35rem;
-            margin: 0 0 12px;
-            color: #333;
-            word-break: break-all;
-        }
-
-        .date-line {
-            font-size: 0.9rem;
-            color: #555;
-            margin-bottom: 12px;
-        }
-
-        .countdown {
-            margin: 10px 0 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .days-number {
-            font-size: 3.2rem;
             font-weight: 700;
-            letter-spacing: 0.06em;
-            color: #3f51b5;
+            margin: 0 0 6px;
         }
 
-        .days-label {
-            font-size: 0.9rem;
-            color: #666;
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: .95rem;
+            line-height: 1.45;
         }
 
-        .detail-text {
-            font-size: 0.9rem;
-            color: #444;
-            margin: 6px 0 10px;
-            min-height: 1.2em;
+        .video-card {
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), transparent 55%), var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            background: linear-gradient(135deg, #3f51b5, #673ab7);
+        /* 竖屏主视觉 9:16 */
+        .video-wrap {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            background: #05060a;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            /* 不想裁切就改成 contain */
+            background: #05060a;
+        }
+
+        .meta {
+            padding: 14px 14px 16px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .meta-title {
+            font-size: 1.05rem;
+            font-weight: 650;
+            margin: 0;
+        }
+
+        .desc {
+            margin: 0;
+            color: var(--muted);
+            font-size: .95rem;
+            line-height: 1.5;
+        }
+
+        footer {
+            margin-top: 6px;
+            padding: 0 4px 10px;
+            color: #8f96ab;
+            font-size: .78rem;
+            text-align: center;
+        }
+
+        @media (max-width: 360px) {
+            .title {
+                font-size: 1.2rem;
+            }
+
+            .subtitle,
+            .desc {
+                font-size: .9rem;
+            }
+        }
+
+        /* ===== 全屏提示覆盖层 ===== */
+        .gate {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            /* 默认隐藏，由 JS 决定显示 */
+            padding:
+                max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+            background:
+                radial-gradient(1200px 1200px at 50% 20%, rgba(122, 162, 255, 0.18), transparent 60%),
+                rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .gate.show {
+            display: grid;
+            place-items: center;
+        }
+
+        .gate-card {
+            width: min(92vw, 420px);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 22px;
+            padding: 22px 20px 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+            text-align: center;
+        }
+
+        .gate-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 8px;
+        }
+
+        .gate-sub {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: .95rem;
+            line-height: 1.5;
+        }
+
+        .gate-btn {
+            appearance: none;
+            border: 1px solid rgba(122, 162, 255, 0.55);
+            background:
+                linear-gradient(135deg, rgba(122, 162, 255, 0.30), rgba(75, 123, 255, 0.22));
             color: #fff;
-            box-shadow: 0 8px 20px rgba(63, 81, 181, 0.25);
-            transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.1s ease;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 650;
+            cursor: pointer;
+            width: 100%;
+            transition: filter .15s ease, transform .15s ease;
         }
 
-        .btn:active {
-            transform: translateY(1px) scale(0.99);
-            box-shadow: 0 4px 12px rgba(63, 81, 181, 0.25);
-            filter: brightness(0.96);
+        .gate-btn:active {
+            transform: scale(0.99);
+            filter: brightness(0.98);
         }
 
-        .btn[disabled] {
-            opacity: 0.4;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .hint {
-            margin: 6px 0 0;
-            font-size: 0.78rem;
-            color: #777;
-            min-height: 1.1em;
-        }
-
-        .small {
-            margin-top: 10px;
-            font-size: 0.75rem;
-            color: #aaa;
+        .gate-hint {
+            margin: 10px 0 0;
+            font-size: .78rem;
+            color: #9aa2b8;
         }
     </style>
 </head>
 
 <body>
-    <main class="card">
-        <h1 id="event-title">距离某个日子还有</h1>
-        <div class="date-line" id="date-line"></div>
+    <main class="app">
+        <header>
+            <h1 class="title">智能自动播放（优先有声）</h1>
+            <p class="subtitle">
+                先尝试不静音自动播放；若被浏览器策略拦截，则弹出全屏提示，需用户点击后播放。
+            </p>
+        </header>
 
-        <section class="countdown">
-            <div class="days-number" id="days">0</div>
-            <div class="days-label">天</div>
+        <section class="video-card">
+            <div class="video-wrap">
+                <video id="player" src="video/baka2.mp4" poster="poster.jpg" playsinline preload="metadata" loop
+                    controls>
+                    你的浏览器不支持 video 标签。
+                </video>
+            </div>
+
+            <div class="meta">
+                <h2 class="meta-title">示例标题：你的作品/项目名称</h2>
+                <p class="desc">
+                    这里写简短说明（2-4 行最佳）：用途、亮点、实验条件或展示语。
+                    结构适配竖屏手机浏览。
+                </p>
+            </div>
         </section>
 
-        <p class="detail-text" id="detail-text"></p>
-
-        <button class="btn" id="play-btn">
-            <span id="play-icon">▶</span>
-            <span id="play-text">播放倒计时音频</span>
-        </button>
-        <p class="hint" id="hint-text"></p>
-
-        <p class="small">提示：如果浏览器禁止自动播放，请点击按钮手动播放。</p>
-
-        <audio id="audio" preload="auto"></audio>
+        <footer>
+            Replace: video.mp4 / poster.jpg
+        </footer>
     </main>
 
+    <!-- 全屏“点按开始”覆盖层 -->
+    <div class="gate" id="gate" role="dialog" aria-modal="true" aria-label="Start video">
+        <div class="gate-card">
+            <p class="gate-title">点击开始播放</p>
+            <p class="gate-sub">
+                你的浏览器阻止了“有声自动播放”。<br />
+                点击按钮后将开始播放。
+            </p>
+            <button class="gate-btn" id="gateBtn">开始播放</button>
+            <p class="gate-hint">若仍无声，请在控制条中确认音量未被系统静音。</p>
+        </div>
+    </div>
+
     <script>
-        (function () {
-            const params = new URLSearchParams(window.location.search);
+        const player = document.getElementById("player");
+        const gate = document.getElementById("gate");
+        const gateBtn = document.getElementById("gateBtn");
 
-            // 支持通过 URL 参数定制
-            // ?title=考试周&date=2026-01-10&audio=audio/exam.mp3&autoplay=1
-            const title = params.get("title") || "《魔法少女小圆：魔女之夜的回天》上映";
-            const dateStr = params.get("date") || "2026-02-01";
-            const audioParam = params.get("audio") || "audio/andimhome.mp3";        // e.g. "audio/demo.mp3" 或完整 URL
-            const autoplay = params.get("autoplay") === "1" || true; // 默认自动播放
+        let autoplayAttempted = false;
 
-            const eventTitleEl = document.getElementById("event-title");
-            const dateLineEl = document.getElementById("date-line");
-            const daysEl = document.getElementById("days");
-            const detailEl = document.getElementById("detail-text");
-            const hintEl = document.getElementById("hint-text");
-            const audioEl = document.getElementById("audio");
-            const playBtn = document.getElementById("play-btn");
-            const playIcon = document.getElementById("play-icon");
-            const playText = document.getElementById("play-text");
+        function showGate() {
+            gate.classList.add("show");
+            // 防止背景滚动
+            document.documentElement.style.overflow = "hidden";
+            document.body.style.overflow = "hidden";
+        }
 
-            eventTitleEl.textContent = `距离「${title}」还有`;
+        function hideGate() {
+            gate.classList.remove("show");
+            document.documentElement.style.overflow = "";
+            document.body.style.overflow = "";
+        }
 
-            const target = new Date(dateStr);
-            if (isNaN(target.getTime())) {
-                dateLineEl.textContent = "";
-                detailEl.textContent = "目标日期格式有误，请检查 URL 中的 date 参数（推荐 YYYY-MM-DD）。";
-                playBtn.disabled = true;
-                return;
-            }
+        async function tryAutoplayWithSound() {
+            if (autoplayAttempted) return;
+            autoplayAttempted = true;
 
-            // 显示目标日期（用设备本地时区）
-            dateLineEl.textContent = `目标日期：${target.getFullYear()}-${String(
-                target.getMonth() + 1
-            ).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+            try {
+                // 关键：尝试有声自动播放
+                player.muted = false;
+                player.autoplay = true;
 
-            // 配置音频
-            if (audioParam) {
-                if (/^https?:\/\//i.test(audioParam)) {
-                    audioEl.src = audioParam; // 完整 URL
-                } else {
-                    audioEl.src = audioParam; // 相对路径，例如 "audio/demo.mp3"
+                const p = player.play();
+                if (p && typeof p.then === "function") {
+                    await p; // 成功则直接播放
                 }
-            } else {
-                // 没有音频参数就隐藏按钮
-                playBtn.style.display = "none";
+                hideGate();
+            } catch (err) {
+                // 有声自动播放失败 → 等待用户手势
+                player.pause();
+                showGate();
             }
+        }
 
-            function updateCountdown() {
-                const now = new Date();
-                let diff = target.getTime() - now.getTime();
-
-                if (diff <= 0) {
-                    daysEl.textContent = "0";
-                    detailEl.textContent = `「${title}」已经到啦！`;
-                    return;
+        async function playAfterUserGesture() {
+            try {
+                // 用户点击后优先有声播放
+                player.muted = false;
+                const p = player.play();
+                if (p && typeof p.then === "function") {
+                    await p;
                 }
-
-                const totalSeconds = Math.floor(diff / 1000);
-                const days = Math.floor(totalSeconds / (24 * 60 * 60));
-                const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-
-                daysEl.textContent = String(days);
-                detailEl.textContent = `还剩 ${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
-            }
-
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-
-            function setPlayingUI(playing) {
-                if (playing) {
-                    playIcon.textContent = "⏸";
-                    playText.textContent = "暂停音频";
-                } else {
-                    playIcon.textContent = "▶";
-                    playText.textContent = "播放倒计时音频";
+                hideGate();
+            } catch (err) {
+                // 极端兜底：若仍失败，改成静音播放以确保能启动
+                try {
+                    player.muted = true;
+                    const p2 = player.play();
+                    if (p2 && typeof p2.then === "function") {
+                        await p2;
+                    }
+                    hideGate();
+                } catch (e2) {
+                    // 仍失败就保持 controls 让用户自行处理
                 }
             }
+        }
 
-            function tryPlay() {
-                if (!audioEl.src) return;
-                audioEl
-                    .play()
-                    .then(() => {
-                        hintEl.textContent = "正在播放倒计时音频";
-                        setPlayingUI(true);
-                    })
-                    .catch(() => {
-                        // 浏览器禁止自动播放
-                        hintEl.textContent = "浏览器阻止了自动播放，请点击按钮开始播放。";
-                        setPlayingUI(false);
-                    });
+        // 点击覆盖层按钮开始播放
+        gateBtn.addEventListener("click", playAfterUserGesture);
+
+        // 也允许点击半透明区域任意位置触发（更符合手机习惯）
+        gate.addEventListener("click", (e) => {
+            if (e.target === gate) playAfterUserGesture();
+        });
+
+        // 页面加载后尝试
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", tryAutoplayWithSound);
+        } else {
+            tryAutoplayWithSound();
+        }
+
+        // 从后台切回前台再尝试一次（不重复打扰：只在未成功播放过且 gate 未显示时）
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden && !gate.classList.contains("show") && player.paused) {
+                autoplayAttempted = false; // 允许重试一次
+                tryAutoplayWithSound();
             }
-
-            playBtn.addEventListener("click", () => {
-                if (!audioEl.src) return;
-                if (audioEl.paused) {
-                    tryPlay();
-                } else {
-                    audioEl.pause();
-                    setPlayingUI(false);
-                    hintEl.textContent = "";
-                }
-            });
-
-            if (autoplay && audioParam) {
-                // 稍微延迟一下，给页面一点加载时间
-                setTimeout(tryPlay, 600);
-            }
-        })();
+        });
     </script>
 </body>
 
