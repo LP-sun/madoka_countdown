@@ -213,6 +213,29 @@
         } else {
             boot();
         }
+        const NETEASE_URL = "https://music.163.com/";
+
+        // 你要手动填：这个 B 站视频的大致时长（秒）
+        // 建议稍微多给 1-2 秒缓冲
+        const VIDEO_DURATION_SECONDS = 31;
+
+        let redirectTimer = null;
+
+        function startRedirectCountdownOnce() {
+            if (redirectTimer) return;
+
+            redirectTimer = setTimeout(() => {
+                window.location.href = NETEASE_URL;
+                // window.open(NETEASE_URL, "_blank");
+            }, VIDEO_DURATION_SECONDS * 1000);
+        }
+
+        // 以“用户第一次触碰视频窗口”为开始计时信号
+        const wrap = document.querySelector(".video-wrap");
+        if (wrap) {
+            wrap.addEventListener("pointerdown", startRedirectCountdownOnce, { once: true });
+            wrap.addEventListener("touchstart", startRedirectCountdownOnce, { once: true });
+        }
     </script>
 </body>
 
