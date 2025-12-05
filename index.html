@@ -153,6 +153,13 @@
                 font-size: .9rem;
             }
         }
+
+        .first-tap-layer {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -172,6 +179,9 @@
                     scrolling="no" frameborder="0" allowfullscreen="true"
                     allow="autoplay; fullscreen; picture-in-picture">
                 </iframe>
+
+                <!-- 只拦截第一次点击(透明) -->
+                <div class="first-tap-layer" id="firstTapLayer" aria-hidden="true"></div>
             </div>
 
             <div class="image-wrap">
@@ -186,12 +196,17 @@
 
     <script>
         const iframe = document.getElementById("biliPlayer");
+        const bgm = document.getElementById("bgm");
+        const firstTapLayer = document.getElementById("firstTapLayer");
 
         // 在这里添加你想随机的 B 站播放器链接（务必使用 https）
         const BILI_POOL = [
-            "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806012&p=1",
-            "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806252&p=2",
-            "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34530656416&p=3"
+            {
+                src: "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806012&p=1", duration: 30
+            },
+            { src: "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806252&p=2", duration: 30 },
+
+            { src: "https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34530656416&p=3", duration: 53 },
             // 示例：再加几个你自己的
             // "https://player.bilibili.com/player.html?isOutside=true&bvid=BVxxxxxxx&cid=xxxxxxxx&p=1",
             // "https://player.bilibili.com/player.html?isOutside=true&bvid=BVyyyyyyy&cid=yyyyyyyy&p=1",
@@ -266,15 +281,25 @@
         function boot() {
             const chosen = pickRandom(BILI_POOL);
             if (iframe && chosen) {
-                iframe.src = chosen;
+                iframe.src = chosen.src;
+
+                // 更新本次视频对应的计时秒数（兜底）
+                chosenDuration = Number(chosen.duration) || chosenDuration;
             }
         }
-        // 用户第一次触碰视频区域 → 开始计时
-        const wrap = document.querySelector(".video-wrap");
-        if (wrap) {
-            wrap.addEventListener("pointerdown", startMusicCountdownOnce, { once: true });
-            wrap.addEventListener("touchstart", startMusicCountdownOnce, { once: true });
+
+        if (firstTapLayer) {
+            firstTapLayer.addEventListener("pointerdown", () => {
+                startMusicCountdownOnce();
+                firstTapLayer.style.display = "none";
+            }, { once: true });
+
+            firstTapLayer.addEventListener("touchstart", () => {
+                startMusicCountdownOnce();
+                firstTapLayer.style.display = "none";
+            }, { once: true });
         }
+
 
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", boot);
