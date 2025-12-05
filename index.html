@@ -179,6 +179,7 @@
             </div>
 
         </section>
+        <audio id="bgm" src="audio/andimhome.mp3" preload="auto" loop></audio>
 
 
     </main>
@@ -200,6 +201,67 @@
             if (!arr || arr.length === 0) return null;
             return arr[Math.floor(Math.random() * arr.length)];
         }
+        // 选中的视频时长
+        let chosenDuration = 30;
+
+        // 计时器只启动一次
+        let musicTimer = null;
+
+        // 尝试“解锁音频权限”
+        // 解释：部分浏览器要求音频播放必须建立在用户手势基础上
+        let audioArmed = false;
+        function armAudioOnce() {
+            if (!bgm || audioArmed) return;
+            audioArmed = true;
+
+            // 用“0音量播放→立刻暂停”的方式争取解锁
+            try {
+                bgm.volume = 0;
+                const p = bgm.play();
+                if (p && typeof p.then === "function") {
+                    p.then(() => {
+                        bgm.pause();
+                        bgm.currentTime = 0;
+                        bgm.volume = 1;
+                    }).catch(() => {
+                        bgm.volume = 1;
+                    });
+                } else {
+                    bgm.pause();
+                    bgm.currentTime = 0;
+                    bgm.volume = 1;
+                }
+            } catch {
+                bgm.volume = 1;
+            }
+        }
+
+        function startMusicCountdownOnce() {
+            if (musicTimer) return;
+
+            // 在用户手势里先尝试解锁未来的音频播放
+            armAudioOnce();
+
+            musicTimer = setTimeout(async () => {
+                if (!bgm) return;
+                try {
+                    bgm.volume = 1;
+                    await bgm.play();
+                } catch (e) {
+                    // 如果仍被拦截，就让用户用页面任意一次点击来触发
+                    const resume = async () => {
+                        try {
+                            await bgm.play();
+                        } finally {
+                            window.removeEventListener("pointerdown", resume);
+                            window.removeEventListener("touchstart", resume);
+                        }
+                    };
+                    window.addEventListener("pointerdown", resume);
+                    window.addEventListener("touchstart", resume);
+                }
+            }, chosenDuration * 1000);
+        }
 
         function boot() {
             const chosen = pickRandom(BILI_POOL);
@@ -207,35 +269,20 @@
                 iframe.src = chosen;
             }
         }
+        // 用户第一次触碰视频区域 → 开始计时
+        const wrap = document.querySelector(".video-wrap");
+        if (wrap) {
+            wrap.addEventListener("pointerdown", startMusicCountdownOnce, { once: true });
+            wrap.addEventListener("touchstart", startMusicCountdownOnce, { once: true });
+        }
 
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", boot);
         } else {
             boot();
         }
-        const NETEASE_URL = "https://music.163.com/";
 
-        // 你要手动填：这个 B 站视频的大致时长（秒）
-        // 建议稍微多给 1-2 秒缓冲
-        const VIDEO_DURATION_SECONDS = 31;
 
-        let redirectTimer = null;
-
-        function startRedirectCountdownOnce() {
-            if (redirectTimer) return;
-
-            redirectTimer = setTimeout(() => {
-                window.location.href = NETEASE_URL;
-                // window.open(NETEASE_URL, "_blank");
-            }, VIDEO_DURATION_SECONDS * 1000);
-        }
-
-        // 以“用户第一次触碰视频窗口”为开始计时信号
-        const wrap = document.querySelector(".video-wrap");
-        if (wrap) {
-            wrap.addEventListener("pointerdown", startRedirectCountdownOnce, { once: true });
-            wrap.addEventListener("touchstart", startRedirectCountdownOnce, { once: true });
-        }
     </script>
 </body>
 
