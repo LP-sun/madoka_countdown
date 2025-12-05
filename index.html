@@ -96,6 +96,62 @@
             border: 0;
         }
 
+        .video-wrap {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            background: #05060a;
+        }
+
+        .video-wrap iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 0;
+        }
+
+        /* 覆盖层 */
+        .unmute-gate {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .unmute-card {
+            width: min(90%, 360px);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 18px 16px 14px;
+            text-align: center;
+        }
+
+        .unmute-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .unmute-sub {
+            font-size: .9rem;
+            color: #c9cede;
+            margin-bottom: 12px;
+        }
+
+        .unmute-btn {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(122, 162, 255, 0.5);
+            background: rgba(122, 162, 255, 0.18);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         .meta {
             padding: 14px 14px 16px;
             display: grid;
@@ -149,9 +205,16 @@
             <div class="video-wrap">
                 <iframe id="biliPlayer"
                     src="https://player.bilibili.com/player.html?isOutside=true&aid=115667479042121&bvid=BV1ru27BAELq&cid=34529806012&p=1"
-                    scrolling="no" frameborder="0" allowfullscreen="true"
-                    allow="autoplay; fullscreen; picture-in-picture">
-                </iframe>
+                    scrolling="no" frameborder="0" allowfullscreen
+                    allow="autoplay; fullscreen; picture-in-picture"></iframe>
+
+                <div class="unmute-gate" id="unmuteGate">
+                    <div class="unmute-card">
+                        <div class="unmute-title">点击开启声音</div>
+                        <div class="unmute-sub">将显示播放器控制条，请点视频内的音量图标</div>
+                        <button class="unmute-btn">我知道了</button>
+                    </div>
+                </div>
             </div>
 
             <div class="meta">
@@ -169,6 +232,20 @@
     </main>
 
     <script>
+        const gate = document.getElementById("unmuteGate");
+        const btn = gate?.querySelector(".unmute-btn");
+
+        function hideGate() {
+            if (!gate) return;
+            gate.style.display = "none";
+        }
+
+        btn?.addEventListener("click", hideGate);
+        gate?.addEventListener("click", (e) => {
+            // 点击遮罩空白处也关闭
+            if (e.target === gate) hideGate();
+        });
+
         const iframe = document.getElementById("biliPlayer");
 
         // 在这里添加你想随机的 B 站播放器链接（务必使用 https）
